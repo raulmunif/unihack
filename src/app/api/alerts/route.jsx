@@ -1,48 +1,41 @@
-// app/api/alerts/route.js
 import { NextResponse } from 'next/server';
-import { 
-  getActiveAlerts, 
-  createAlert
-} from '@/lib/datastax';
+import { createAlert, getActiveAlerts } from '@/lib/mongodb';
+import { geocodeAddress } from '@/lib/location-service';
 
-// Get all active alerts
-export async function GET() {
+export async function POST(request) {
   try {
-    const alerts = await getActiveAlerts();
-    return NextResponse.json({ alerts });
+    const data = await request.json();
+    
+    // Get coordinates for the location
+    let position = null;
+    if (data.location) {
+      position = await geocodeAddress(data.location);
+    }
+    
+    const alert = await createAlert({
+      ...data,
+      position,
+    });
+    
+    return NextResponse.json(alert);
   } catch (error) {
-    console.error('Error fetching alerts:', error);
+    console.error('Error creating alert:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch alerts' },
+      { error: 'Failed to create alert' },
       { status: 500 }
     );
   }
 }
 
-// Create a new alert
-export async function POST(request) {
+export async function GET() {
   try {
-    const alertData = await request.json();
-    
-    // Validate required fields
-    const requiredFields = ['title', 'description', 'category', 'severity', 'location', 'expectedResolution', 'issuer'];
-    for (const field of requiredFields) {
-      if (!alertData[field]) {
-        return NextResponse.json(
-          { error: `Missing required field: ${field}` },
-          { status: 400 }
-        );
-      }
-    }
-    
-    // Create the alert
-    const newAlert = await createAlert(alertData);
-    
-    return NextResponse.json({ alert: newAlert }, { status: 201 });
+    const alerts = await getActiveAlerts();
+    // Return in the format expected by AlertDashboard
+    return NextResponse.json({ alerts });
   } catch (error) {
-    console.error('Error creating alert:', error);
+    console.error('Error fetching alerts:', error);
     return NextResponse.json(
-      { error: 'Failed to create alert' },
+      { error: 'Failed to fetch alerts' },
       { status: 500 }
     );
   }

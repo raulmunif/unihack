@@ -1,10 +1,9 @@
-// app/api/query/route.js
 import { NextResponse } from 'next/server';
-import { queryAlerts } from '@/lib/datastax';
+import { queryAlerts } from '@/lib/mongodb';
 
 export async function POST(request) {
   try {
-    const { query } = await request.json();
+    const { query, location } = await request.json();
     
     if (!query) {
       return NextResponse.json(
@@ -13,13 +12,12 @@ export async function POST(request) {
       );
     }
     
-    const result = await queryAlerts(query);
-    
-    return NextResponse.json(result);
+    const results = await queryAlerts(query, location);
+    return NextResponse.json(results);
   } catch (error) {
-    console.error('Error processing query:', error);
+    console.error('Error querying alerts:', error);
     return NextResponse.json(
-      { error: 'Failed to process query' },
+      { error: 'Failed to query alerts' },
       { status: 500 }
     );
   }

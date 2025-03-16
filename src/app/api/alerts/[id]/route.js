@@ -1,15 +1,9 @@
-// app/api/alerts/[id]/route.js
 import { NextResponse } from 'next/server';
-import { 
-  getAlertById,
-  updateAlert,
-  deactivateAlert 
-} from '@/lib/datastax';
+import { getAlertById, updateAlert, deactivateAlert } from '@/lib/mongodb';
 
 export async function GET(request, { params }) {
   try {
-    const { id } = params;
-    const alert = await getAlertById(id);
+    const alert = await getAlertById(params.id);
     
     if (!alert) {
       return NextResponse.json(
@@ -18,7 +12,7 @@ export async function GET(request, { params }) {
       );
     }
     
-    return NextResponse.json({ alert });
+    return NextResponse.json(alert);
   } catch (error) {
     console.error('Error fetching alert:', error);
     return NextResponse.json(
@@ -28,22 +22,19 @@ export async function GET(request, { params }) {
   }
 }
 
-// Update an alert
 export async function PATCH(request, { params }) {
   try {
-    const { id } = params;
-    const updateData = await request.json();
+    const data = await request.json();
+    const alert = await updateAlert(params.id, data);
     
-    const updatedAlert = await updateAlert(id, updateData);
-    
-    if (!updatedAlert) {
+    if (!alert) {
       return NextResponse.json(
         { error: 'Alert not found' },
         { status: 404 }
       );
     }
     
-    return NextResponse.json({ alert: updatedAlert });
+    return NextResponse.json(alert);
   } catch (error) {
     console.error('Error updating alert:', error);
     return NextResponse.json(
@@ -53,24 +44,18 @@ export async function PATCH(request, { params }) {
   }
 }
 
-// Deactivate an alert
 export async function DELETE(request, { params }) {
   try {
-    const { id } = params;
+    const alert = await deactivateAlert(params.id);
     
-    const result = await deactivateAlert(id);
-    
-    if (!result) {
+    if (!alert) {
       return NextResponse.json(
         { error: 'Alert not found' },
         { status: 404 }
       );
     }
     
-    return NextResponse.json(
-      { message: 'Alert deactivated successfully' },
-      { status: 200 }
-    );
+    return NextResponse.json(alert);
   } catch (error) {
     console.error('Error deactivating alert:', error);
     return NextResponse.json(

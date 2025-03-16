@@ -1,99 +1,100 @@
 # Alert System
 
-A real-time alert notification system built with Next.js that allows users to submit, view, and query alerts based on location and relevance.
+A real-time alert system that aggregates emergency alerts from various sources and provides location-based search capabilities.
 
-## Features
+## New Features
 
-- Submit new alerts with location data
-- View alerts on an interactive map
-- Search for alerts using natural language queries
-- Get alerts near your current location
-- AI-powered search and relevance ranking
+- MongoDB integration for improved vector search capabilities
+- Web scraping of emergency services websites
+- Automated alert collection from multiple sources
+- Local embeddings generation using Transformers.js
 
-## Required Services
+## Prerequisites
 
-To run this application, you'll need to sign up for the following services and obtain API keys:
+- Node.js 18+
+- MongoDB 6.0+
+- npm or yarn
 
-### 1. DataStax Astra DB
+## Setup
 
-This application uses DataStax Astra DB for database storage with vector search capabilities.
+1. Install MongoDB:
+   ```bash
+   # macOS (using Homebrew)
+   brew tap mongodb/brew
+   brew install mongodb-community
+   ```
 
-1. Sign up for a free account at [https://astra.datastax.com](https://astra.datastax.com)
-2. Create a new database (the free tier is sufficient)
-3. Create a collection called `alerts` in your database
-4. Generate an application token with the "Database Administrator" role
-5. Note your database ID, region, and application token
+2. Create data directory:
+   ```bash
+   mkdir -p data/db
+   ```
 
-### 2. OpenAI API
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-The application uses OpenAI for embeddings and natural language processing.
+4. Set up environment variables:
+   Create a `.env.local` file with the following:
+   ```
+   MONGODB_URI=mongodb://localhost:27017/alert-system
+   NEXT_PUBLIC_MAPBOX_API_KEY=your_mapbox_key
+   ENABLE_SCRAPER_SCHEDULER=true
+   SCRAPER_SCHEDULE=0 * * * *
+   SCRAPER_API_KEY=your_scraper_key
+   SCHEDULER_API_KEY=your_scheduler_key
+   ```
 
-1. Sign up for an account at [https://platform.openai.com](https://platform.openai.com)
-2. Create an API key in the OpenAI dashboard
-3. Note your API key
+5. Initialize MongoDB:
+   ```bash
+   npm run init-db
+   ```
 
-### 3. Mapbox API
+6. If migrating from DataStax:
+   ```bash
+   npm run migrate
+   ```
 
-Mapbox is used for the interactive map visualization.
+## Running the Application
 
-1. Sign up for a free account at [https://www.mapbox.com](https://www.mapbox.com)
-2. Create a new access token in the Mapbox dashboard
-3. Note your public access token
+1. Start MongoDB:
+   ```bash
+   npm run init-db
+   ```
 
-### 4. Nominatim OpenStreetMap API
+2. In a new terminal, start the development server:
+   ```bash
+   npm run dev
+   ```
 
-The application uses the free Nominatim OpenStreetMap API for geocoding. No signup is required, but be aware of the [usage policy](https://operations.osmfoundation.org/policies/nominatim/) which limits requests to 1 per second.
+3. Start the scraper service:
+   ```bash
+   npm run scrape
+   ```
 
-## Environment Setup
+The application will be available at http://localhost:3000
 
-Create a `.env.local` file in the root directory with the following variables:
+## Architecture
 
-```
-ASTRA_DB_ID=your_astra_db_id
-ASTRA_DB_REGION=your_astra_db_region
-ASTRA_DB_APPLICATION_TOKEN=your_astra_db_token
-ASTRA_DB_NAMESPACE=your_astra_db_namespace
-OPENAI_API_KEY=your_openai_api_key
-NEXT_PUBLIC_MAPBOX_API_KEY=your_mapbox_public_token
-```
+### Database
+- MongoDB for storing alerts and vector embeddings
+- Local embedding generation using Transformers.js
+- Geospatial indexing for location-based queries
 
-## Getting Started
+### Web Scraping
+- Automated scraping of emergency services websites
+- Configurable sources in `src/lib/scraper.js`
+- Scheduled updates via API endpoint
 
-First, install the dependencies:
+### API Routes
+- `/api/alerts`: CRUD operations for alerts
+- `/api/query`: Vector similarity search with location awareness
+- `/api/scheduler`: Controls the web scraper service
 
-```bash
-npm install
-# or
-yarn install
-# or
-pnpm install
-# or
-bun install
-```
+## Contributing
 
-Then, run the development server:
-
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
