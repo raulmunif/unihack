@@ -91,6 +91,20 @@ The application will be available at http://localhost:3000
 - `/api/query`: Vector similarity search with location awareness
 - `/api/scheduler`: Controls the web scraper service
 
+## APIs and AI Components
+
+### APIs Used
+- Mapbox API: For map rendering and geocoding services
+- MongoDB Atlas: Database and vector search capabilities
+- Web Scraping APIs: For automated collection of emergency alerts
+
+### AI/ML Components
+- Transformers.js: Local embedding generation for semantic search
+- Vector Similarity Search: Powered by MongoDB's vector search capabilities
+- Natural Language Processing: Used for processing and understanding alert descriptions
+- Semantic Search: Implemented using vector embeddings for intelligent alert querying
+- Claude Sonnet assistant when coding 
+
 ## Contributing
 
 1. Fork the repository
