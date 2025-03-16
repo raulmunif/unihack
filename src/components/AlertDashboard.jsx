@@ -24,12 +24,7 @@ const AlertDashboard = () => {
         const response = await fetch('/api/alerts');
         if (response.ok) {
           const data = await response.json();
-          // Initialize isRelevant property to false for each alert
-          const initializedAlerts = (data.alerts || []).map(alert => ({
-            ...alert,
-            isRelevant: false
-          }));
-          setAlerts(initializedAlerts);
+          setAlerts(data.alerts || []);
         } else {
           console.error('Failed to fetch alerts');
           // Fallback to mock data if API fails
@@ -85,28 +80,8 @@ const handleSearch = async () => {
       const data = await response.json();
       setAiResponse(data.answer);
       
-      // If we get relevant alerts back, highlight them
-      if (data.relevantAlerts && data.relevantAlerts.length > 0) {
-        // Create a Set of relevant alert IDs for easy lookup
-        const relevantAlertIds = new Set(data.relevantAlerts.map(alert => alert.id));
-        
-        // Update the UI to highlight relevant alerts
-        // This is just one approach - you could also sort them to the top, etc.
-        const updatedAlerts = alerts.map(alert => ({
-          ...alert,
-          isRelevant: relevantAlertIds.has(alert.id)
-        }));
-        
-        setAlerts(updatedAlerts);
-      } else {
-        // Clear any previous relevant highlights
-        const resetAlerts = alerts.map(alert => ({
-          ...alert,
-          isRelevant: false
-        }));
-        
-        setAlerts(resetAlerts);
-      }
+      // Just set the AI response
+      setAiResponse(data.answer);
     } else {
       // Fallback to simple search if API fails
       setAiResponse(getSimpleSearchResponse(searchQuery));
@@ -274,7 +249,7 @@ const handleSearch = async () => {
                   <Card 
                     key={alert.id} 
                     className={`border-l-4 shadow-md ${getSeverityBorderColor(alert.severity)} ${
-                      alert.isRelevant ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                      alert.isRelevant ? '' : ''
                     }`}
                   >
                     <CardHeader className="pb-2">
@@ -283,9 +258,7 @@ const handleSearch = async () => {
                           {getCategoryIcon(alert.category)}
                           <CardTitle>
                             {alert.title}
-                            {alert.isRelevant && (
-                              <Badge className="ml-2 bg-blue-500 text-white">Relevant</Badge>
-                            )}
+                            {alert.isRelevant}
                           </CardTitle>
                         </div>
                         <Badge className={`${getSeverityColor(alert.severity)} text-white`}>
