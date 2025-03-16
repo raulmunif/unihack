@@ -1,42 +1,67 @@
-import { NextResponse } from 'next/server';
-import { createAlert, getActiveAlerts } from '@/lib/mongodb';
-import { geocodeAddress } from '@/lib/location-service';
+// File: app/api/alerts/route.js (Next.js App Router)
+// or: pages/api/alerts.js (Next.js Pages Router)
 
-export async function POST(request) {
+import { MongoClient } from 'mongodb';
+
+// Your MongoDB connection string
+const uri = process.env.MONGODB_URI;
+const dbName = process.env.MONGODB_DB_NAME || 'alert-system-database';
+const collectionName = process.env.MONGODB_COLLECTION || 'alerts'; // The collection name where alerts are stored
+
+export async function GET(request) {
+  // For Next.js App Router
   try {
-    const data = await request.json();
+    const client = new MongoClient(uri);
+    await client.connect();
     
-    // Get coordinates for the location
-    let position = null;
-    if (data.location) {
-      position = await geocodeAddress(data.location);
-    }
+    const database = client.db(dbName);
+    const collection = database.collection(collectionName);
     
-    const alert = await createAlert({
-      ...data,
-      position,
+    // Fetch alerts
+    const alerts = await collection.find({}).toArray();
+    
+    await client.close();
+    
+    return new Response(JSON.stringify({ alerts }), {
+      status: 200,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
-    
-    return NextResponse.json(alert);
   } catch (error) {
-    console.error('Error creating alert:', error);
-    return NextResponse.json(
-      { error: 'Failed to create alert' },
-      { status: 500 }
-    );
+    console.error('Error fetching alerts from MongoDB:', error);
+    return new Response(JSON.stringify({ error: 'Failed to fetch alerts' }), {
+      status: 500,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
   }
 }
 
-export async function GET() {
+// If you're using Pages API Routes (pages/api/alerts.js), use this handler instead:
+/*
+export default async function handler(req, res) {
+  if (req.method !== 'GET') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
   try {
-    const alerts = await getActiveAlerts();
-    // Return in the format expected by AlertDashboard
-    return NextResponse.json({ alerts });
+    const client = new MongoClient(uri);
+    await client.connect();
+    
+    const database = client.db(dbName);
+    const collection = database.collection(collectionName);
+    
+    // Fetch alerts
+    const alerts = await collection.find({}).toArray();
+    
+    await client.close();
+    
+    return res.status(200).json({ alerts });
   } catch (error) {
-    console.error('Error fetching alerts:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch alerts' },
-      { status: 500 }
-    );
+    console.error('Error fetching alerts from MongoDB:', error);
+    return res.status(500).json({ error: 'Failed to fetch alerts' });
   }
 }
+*/
