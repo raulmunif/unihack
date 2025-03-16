@@ -24,7 +24,12 @@ const AlertDashboard = () => {
         const response = await fetch('/api/alerts');
         if (response.ok) {
           const data = await response.json();
-          setAlerts(data.alerts || []);
+          // Initialize isRelevant property to false for each alert
+          const initializedAlerts = (data.alerts || []).map(alert => ({
+            ...alert,
+            isRelevant: false
+          }));
+          setAlerts(initializedAlerts);
         } else {
           console.error('Failed to fetch alerts');
           // Fallback to mock data if API fails
@@ -57,39 +62,63 @@ const AlertDashboard = () => {
     }
   }, []);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+
+const handleSearch = async () => {
+  if (!searchQuery.trim()) return;
+  
+  setIsSearching(true);
+  
+  try {
+    // Try to use the AI query API
+    const response = await fetch('/api/query', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        query: searchQuery,
+        userLocation: userLocation
+      }),
+    });
     
-    setIsSearching(true);
-    
-    try {
-      // Try to use the AI query API
-      const response = await fetch('/api/query', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          query: searchQuery,
-          userLocation: userLocation
-        }),
-      });
+    if (response.ok) {
+      const data = await response.json();
+      setAiResponse(data.answer);
       
-      if (response.ok) {
-        const data = await response.json();
-        setAiResponse(data.answer);
+      // If we get relevant alerts back, highlight them
+      if (data.relevantAlerts && data.relevantAlerts.length > 0) {
+        // Create a Set of relevant alert IDs for easy lookup
+        const relevantAlertIds = new Set(data.relevantAlerts.map(alert => alert.id));
+        
+        // Update the UI to highlight relevant alerts
+        // This is just one approach - you could also sort them to the top, etc.
+        const updatedAlerts = alerts.map(alert => ({
+          ...alert,
+          isRelevant: relevantAlertIds.has(alert.id)
+        }));
+        
+        setAlerts(updatedAlerts);
       } else {
-        // Fallback to simple search if API fails
-        setAiResponse(getSimpleSearchResponse(searchQuery));
+        // Clear any previous relevant highlights
+        const resetAlerts = alerts.map(alert => ({
+          ...alert,
+          isRelevant: false
+        }));
+        
+        setAlerts(resetAlerts);
       }
-    } catch (error) {
-      console.error('Error querying alerts:', error);
+    } else {
       // Fallback to simple search if API fails
       setAiResponse(getSimpleSearchResponse(searchQuery));
-    } finally {
-      setIsSearching(false);
     }
-  };
+  } catch (error) {
+    console.error('Error querying alerts:', error);
+    // Fallback to simple search if API fails
+    setAiResponse(getSimpleSearchResponse(searchQuery));
+  } finally {
+    setIsSearching(false);
+  }
+};
 
   // Simple search response when API is not available
   const getSimpleSearchResponse = (query) => {
@@ -119,7 +148,8 @@ const AlertDashboard = () => {
         timeIssued: '2025-03-15T08:30:00',
         expectedResolution: '2025-03-15T11:00:00',
         issuer: 'Transport NSW',
-        position: { lat: -33.8882, lng: 151.1031 }
+        position: { lat: -33.8882, lng: 151.1031 },
+        isRelevant: false
       },
       {
         id: 2,
@@ -131,7 +161,8 @@ const AlertDashboard = () => {
         timeIssued: '2025-03-14T17:00:00',
         expectedResolution: '2025-03-15T14:00:00',
         issuer: 'Ausgrid',
-        position: { lat: -33.8273, lng: 151.2092 }
+        position: { lat: -33.8273, lng: 151.2092 },
+        isRelevant: false
       },
       {
         id: 3,
@@ -143,7 +174,8 @@ const AlertDashboard = () => {
         timeIssued: '2025-03-15T06:15:00',
         expectedResolution: '2025-03-16T00:00:00',
         issuer: 'NSW Emergency Services',
-        position: { lat: -33.8148, lng: 151.0017 }
+        position: { lat: -33.8148, lng: 151.0017 },
+        isRelevant: false
       }
     ];
   };
@@ -241,13 +273,20 @@ const AlertDashboard = () => {
                 alerts.map((alert) => (
                   <Card 
                     key={alert.id} 
-                    className={`border-l-4 shadow-md ${getSeverityBorderColor(alert.severity)}`}
+                    className={`border-l-4 shadow-md ${getSeverityBorderColor(alert.severity)} ${
+                      alert.isRelevant ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
+                    }`}
                   >
                     <CardHeader className="pb-2">
                       <div className="flex justify-between items-start">
                         <div className="flex items-center gap-2">
                           {getCategoryIcon(alert.category)}
-                          <CardTitle>{alert.title}</CardTitle>
+                          <CardTitle>
+                            {alert.title}
+                            {alert.isRelevant && (
+                              <Badge className="ml-2 bg-blue-500 text-white">Relevant</Badge>
+                            )}
+                          </CardTitle>
                         </div>
                         <Badge className={`${getSeverityColor(alert.severity)} text-white`}>
                           {alert.severity.charAt(0).toUpperCase() + alert.severity.slice(1)}
