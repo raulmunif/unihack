@@ -181,7 +181,7 @@ export const queryAlerts = async (query, userLocation = null) => {
       messages: [
         {
           role: "system",
-          content: `You are a helpful assistant that provides concise information about public alerts. 
+          content: `You are a helpful assistant that provides concise information about what's going on. 
                     Summarize the information provided to answer the user's query. 
                     Be direct and factual. ${locationContext}
                     If distance information is available, mention the closest alerts first.

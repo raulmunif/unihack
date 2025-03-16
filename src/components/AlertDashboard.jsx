@@ -282,7 +282,7 @@ const handleSearch = async () => {
 
   return (
     <div className="space-y-8">
-      <h1 className="text-3xl font-bold mb-6">Public Alert System</h1>
+      <h1 className="text-3xl font-bold mb-6">What's going on?</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column: AI Query and Alerts List */}
