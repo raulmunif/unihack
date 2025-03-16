@@ -1,27 +1,55 @@
 'use client'
 
 import React, { useState, useEffect } from 'react';
-import { Search, AlertTriangle, Zap, Droplets, Train } from 'lucide-react';
+import { Search, AlertTriangle, Zap, Droplets, Train, Flame } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import AlertMapWithMapbox from '@/components/AlertMapWithMapbox';
 import NearbyAlerts from '@/components/NearbyAlerts';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
 
 const AlertDashboard = () => {
+  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedSeverities, setSelectedSeverities] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [aiResponse, setAiResponse] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [alerts, setAlerts] = useState([]);
   const [userLocation, setUserLocation] = useState(null);
+  const [filteredAlerts, setFilteredAlerts] = useState([]);
 
-  // Fetch alerts when component mounts
+  // Define available categories and severities
+  const categories = [
+    { id: 'transport', label: 'Transport', icon: <Train className="h-4 w-4" /> },
+    { id: 'weather', label: 'Weather', icon: <Droplets className="h-4 w-4" /> },
+    { id: 'fire', label: 'Fire', icon: <Flame className="h-4 w-4" /> },
+    { id: 'other', label: 'Other', icon: <AlertTriangle className="h-4 w-4" /> }
+  ];
+
+  const severities = [
+    { id: 'high', label: 'High', color: 'bg-red-500' },
+    { id: 'medium', label: 'Medium', color: 'bg-orange-500' },
+    { id: 'low', label: 'Low', color: 'bg-yellow-500' }
+  ];
+
+  // Fetch alerts when component mounts or filters change
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        const response = await fetch('/api/alerts');
+        const queryParams = new URLSearchParams();
+        if (selectedCategories.length) {
+          queryParams.append('categories', selectedCategories.join(','));
+        }
+        if (selectedSeverities.length) {
+          queryParams.append('severities', selectedSeverities.join(','));
+        }
+        
+        const response = await fetch(`/api/alerts?${queryParams}`);
         if (response.ok) {
           const data = await response.json();
           setAlerts(data.alerts || []);
@@ -38,7 +66,38 @@ const AlertDashboard = () => {
     };
 
     fetchAlerts();
-  }, []);
+  }, [selectedCategories, selectedSeverities]);
+
+  // Filter alerts based on selected categories and severities
+  useEffect(() => {
+    let filtered = [...alerts];
+    
+    if (selectedCategories.length > 0) {
+      filtered = filtered.filter(alert => selectedCategories.includes(alert.category));
+    }
+    
+    if (selectedSeverities.length > 0) {
+      filtered = filtered.filter(alert => selectedSeverities.includes(alert.severity));
+    }
+    
+    setFilteredAlerts(filtered);
+  }, [alerts, selectedCategories, selectedSeverities]);
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategories(prev =>
+      prev.includes(category)
+        ? prev.filter(c => c !== category)
+        : [...prev, category]
+    );
+  };
+
+  const handleSeverityChange = (severity) => {
+    setSelectedSeverities(prev =>
+      prev.includes(severity)
+        ? prev.filter(s => s !== severity)
+        : [...prev, severity]
+    );
+  };
 
   // Get user location if available
   useEffect(() => {
@@ -151,6 +210,19 @@ const handleSearch = async () => {
         issuer: 'NSW Emergency Services',
         position: { lat: -33.8148, lng: 151.0017 },
         isRelevant: false
+      },
+      {
+        id: 4,
+        title: 'Bushfire Warning',
+        description: 'Bushfire approaching from the west in Blue Mountains area. Prepare to evacuate if directed.',
+        category: 'fire',
+        severity: 'high',
+        location: 'Blue Mountains',
+        timeIssued: '2025-03-15T10:45:00',
+        expectedResolution: '2025-03-17T18:00:00',
+        issuer: 'NSW Rural Fire Service',
+        position: { lat: -33.7001, lng: 150.3002 },
+        isRelevant: false
       }
     ];
   };
@@ -163,6 +235,8 @@ const handleSearch = async () => {
         return <Zap className="h-5 w-5" />;
       case 'weather':
         return <Droplets className="h-5 w-5" />;
+      case 'fire':
+        return <Flame className="h-5 w-5" />;
       default:
         return <AlertTriangle className="h-5 w-5" />;
     }
@@ -199,6 +273,11 @@ const handleSearch = async () => {
     if (e.key === 'Enter') {
       handleSearch();
     }
+  };
+
+  const clearFilters = () => {
+    setSelectedCategories([]);
+    setSelectedSeverities([]);
   };
 
   return (
@@ -239,13 +318,68 @@ const handleSearch = async () => {
               )}
             </CardContent>
           </Card>
+
+          {/* Filter Controls */}
+          <Card className="shadow-md">
+            <CardHeader className="pb-2">
+              <CardTitle>Filter Alerts</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {/* Category Filters */}
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Categories</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {categories.map((category) => (
+                      <Button
+                        key={category.id}
+                        variant={selectedCategories.includes(category.id) ? "default" : "outline"}
+                        size="sm"
+                        className="flex items-center gap-1"
+                        onClick={() => handleCategoryChange(category.id)}
+                      >
+                        {category.icon}
+                        {category.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Severity Filters */}
+                <div>
+                  <h3 className="text-sm font-medium mb-2">Severity</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {severities.map((severity) => (
+                      <Button
+                        key={severity.id}
+                        variant={selectedSeverities.includes(severity.id) ? "default" : "outline"}
+                        size="sm"
+                        className="flex items-center gap-1"
+                        onClick={() => handleSeverityChange(severity.id)}
+                      >
+                        <div className={`w-3 h-3 rounded-full ${severity.color}`}></div>
+                        {severity.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Clear Filters Button */}
+                {(selectedCategories.length > 0 || selectedSeverities.length > 0) && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear all filters
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
           
           {/* Current Alerts Section */}
           <div>
             <h2 className="text-2xl font-semibold mb-4">Current Alerts</h2>
             <div className="space-y-4">
-              {alerts.length > 0 ? (
-                alerts.map((alert) => (
+              {filteredAlerts.length > 0 ? (
+                filteredAlerts.map((alert) => (
                   <Card 
                     key={alert.id} 
                     className={`border-l-4 shadow-md ${getSeverityBorderColor(alert.severity)} ${
@@ -288,7 +422,9 @@ const handleSearch = async () => {
                 ))
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  Loading alerts...
+                  {alerts.length > 0 
+                    ? 'No alerts match your current filters. Try adjusting your filter criteria.'
+                    : 'Loading alerts...'}
                 </div>
               )}
             </div>
@@ -298,10 +434,10 @@ const handleSearch = async () => {
         {/* Right column: Map and Nearby Alerts */}
         <div className="space-y-6">
           {/* Map Component */}
-          <AlertMapWithMapbox alerts={alerts} />
+          <AlertMapWithMapbox alerts={filteredAlerts.length > 0 ? filteredAlerts : alerts} />
           
           {/* Nearby Alerts Component */}
-          <NearbyAlerts alerts={alerts} />
+          <NearbyAlerts alerts={filteredAlerts.length > 0 ? filteredAlerts : alerts} />
         </div>
       </div>
     </div>

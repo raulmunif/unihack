@@ -185,6 +185,29 @@ export const deactivateAlert = async (id) => {
   }
 };
 
+// Get filtered alerts
+export const getFilteredAlerts = async (filters = {}) => {
+  try {
+    await connectToDatabase();
+    const query = { active: true };
+    
+    // Add category filter if provided
+    if (filters.categories?.length) {
+      query.category = { $in: filters.categories };
+    }
+    
+    // Add severity filter if provided
+    if (filters.severities?.length) {
+      query.severity = { $in: filters.severities };
+    }
+    
+    return Alert.find(query).sort('-timeIssued');
+  } catch (error) {
+    console.error('Error getting filtered alerts:', error);
+    throw error;
+  }
+};
+
 // Query alerts using vector similarity
 export const queryAlerts = async (query, userLocation = null) => {
   try {
